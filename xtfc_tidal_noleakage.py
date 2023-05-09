@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 #params=[0,  1, 2,3,4,5,6,7,8]
 
 # new_params = [em,taom,S,T,A,a,tm]
-params= [2000,48,0.001,2000/24,0.65,2*np.pi/24,48]
+params= [1,1,0.001,2000/24,0.65,2*np.pi/24,24]
 
 # Input dimension is 2, output dimension :150-170, number of neurons in hidden layer
 
@@ -31,7 +31,8 @@ def single_HLM_TD(fan_in,fan_out,t,x,params):
     t,x = symbols("t,x")
     x_ = Matrix([[t],[x]])
     sigma0 = w.T*x_
-    sigma =sigma0.applyfunc(tanh)
+    #sigma =sigma0.applyfunc(tanh)
+    sigma = sigma0.applyfunc(tanh)
     sigma_xx = diff(sigma,x,2)
     sigma_t = diff(sigma,t)
     sigma_xx_0x = sigma_xx.subs(t,0)
@@ -56,7 +57,7 @@ tx_eqn[...,0]=np.linspace(0, params[1], num_train_samples)
 tx_eqn[...,1]=np.linspace(0, 1, num_train_samples)
 HLM = []
 b_1 = []
-fan_out = 600
+fan_out = 100
 M,b,sigma,a = single_HLM_TD(2,fan_out,t,x,params)
 # compute num_samples of samples hidden layer matrix and bias
 for i in range(len(tx_eqn)):
@@ -72,30 +73,31 @@ for i in range(len(tx_eqn)):
     b_1.append(b_i)
 HLM_ = np.array(HLM).reshape(num_train_samples,fan_out)
 b_ = np.array(b_1).reshape(-1,1)
+b_[99] = 0
 
+m= np.linalg.lstsq(HLM_, b_, rcond=None)[0]
+print(m)
 # solve for beta, least square
 beta = np.dot(np.linalg.inv(np.dot(HLM_.T,HLM_)),np.dot(HLM_.T,b_))
 beta = np.dot(np.linalg.inv(HLM_),b_)
-cp = np.dot(HLM_,beta)-b_
-beta_m = Matrix(beta)
+cp = np.dot(HLM_,m)-b_
+beta_m = Matrix(m)
 # h as function of t and x
-h_m = sigma.T*beta_m+(x-1)*sigma.T.subs(x,0)*beta_m-x*sigma.T.subs(x,params[0])*beta_m-x*sigma.T.subs(t,0).subs(x,0)*beta_m+x*sigma.T.subs(t,0).subs(x,params[0])*beta_m-sigma.T.subs(t,0)*beta_m+sigma.T.subs(t,0).subs(x,0)*beta_m
+h_m = sigma.T*beta_m+(x-1)*sigma.T.subs(x,0)*beta_m-x*sigma.T.subs(x,1)*beta_m-x*sigma.T.subs(t,0).subs(x,0)*beta_m+x*sigma.T.subs(t,0).subs(x,params[0])*beta_m-sigma.T.subs(t,0)*beta_m+sigma.T.subs(t,0).subs(x,0)*beta_m
 h_ele = h_m[0,0]
-h = h_ele + a
+h = h_ele +a
 
-
-num_test_samples = 200
+num_test_samples = 100
 tx_eqn1 = np.zeros((num_test_samples,2))
-tx_eqn1[...,0]=np.linspace(0, params[1], num_test_samples)
-tx_eqn1[...,1]=np.linspace(0.5, 0.95, num_test_samples)
+tx_eqn1[...,0]= 1/4
+tx_eqn1[...,1]=np.linspace(0, 1, num_test_samples)
 
-h_solution = np.zeros((num_test_samples,num_test_samples))
-for i in range(len(h_solution)):
-    for j in range(len(h_solution.T)):
-        ti,xj = tx_eqn1[...,0][i],tx_eqn1[...,1][j]
-        hij = h.subs(t,ti).subs(x,xj)
-        c1 = (t,x)
-        hij_f = lambdify(c1, hij, modules='numpy')
-        h_solution[i][j] = hij_f(ti,xj)
+h_solution = np.zeros((1,num_test_samples))
+for j in range(len(h_solution.T)):
+    ti,xj = 1/8,tx_eqn1[...,1][j]
+    hij = h.subs(t,ti).subs(x,xj)
+    c1 = (t,x)
+    hij_f = lambdify(c1, hij, modules='numpy')/432
+    h_solution[0][j] = hij_f(ti,xj)
 
-plt.plot(tx_eqn1[...,0],h_solution[0,:])
+hc = h_solution[:,0]

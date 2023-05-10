@@ -87,17 +87,95 @@ h_m = sigma.T*beta_m+(x-1)*sigma.T.subs(x,0)*beta_m-x*sigma.T.subs(x,1)*beta_m-x
 h_ele = h_m[0,0]
 h = h_ele +a
 
-num_test_samples = 100
-tx_eqn1 = np.zeros((num_test_samples,2))
-tx_eqn1[...,0]= 1/4
-tx_eqn1[...,1]=np.linspace(0, 1, num_test_samples)
+fig = plt.figure(figsize=(7,4))
+gs = GridSpec(2, 2)
+plt.subplot(gs[0, :])
+t_cross_sections = [0,1/2]
+for i, tr in enumerate(t_cross_sections):
+    plt.subplot(gs[1, i])
+    num_test_samples = 100
+    tx_eqn1 = np.zeros((num_test_samples,2))
+    tx_eqn1[...,0]= tr
+    tx_eqn1[...,1]=np.linspace(0, 1, num_test_samples)
 
-h_solution = np.zeros((1,num_test_samples))
-for j in range(len(h_solution.T)):
-    ti,xj = 1/8,tx_eqn1[...,1][j]
-    hij = h.subs(t,ti).subs(x,xj)
-    c1 = (t,x)
-    hij_f = lambdify(c1, hij, modules='numpy')/432
-    h_solution[0][j] = hij_f(ti,xj)
+    h_solution = np.zeros((1,num_test_samples))
+    for j in range(len(h_solution.T)):
+        if tr < 1/2:
 
-hc = h_solution[:,0]
+            ti,xj = tr,tx_eqn1[...,1][j]
+            hij = h.subs(t,ti).subs(x,xj)
+            c1 = (t,x)
+            hij_f = lambdify(c1, hij, modules='numpy')
+            h_solution[0][j] = hij_f(ti,xj)
+            h_solution1 = h_solution
+            h_solution1[0,99]=0
+        else:
+            tr1 = tr-1/2
+            ti,xj = tr1,tx_eqn1[...,1][j]
+            hij =  h.subs(t,ti).subs(x,xj)
+            c1 = (t,x)
+            hij_f = lambdify(c1, hij, modules='numpy')
+            h_solution[0][j] = hij_f(ti,xj)
+            h_solution1 = -h_solution
+            h_solution1[0,99]=0
+    p = (params[5]*params[2]/2/params[3])**0.5
+    if tr ==0 :
+        
+       ha = params[4]*np.exp(-p*np.tan(np.pi*tx_eqn1[...,1]/2))*np.cos(-p*np.tan(np.pi*tx_eqn1[...,1]/2)+params[5]*params[6]*tr)
+    else:
+       ha = -params[4]*np.exp(-p*np.tan(np.pi*tx_eqn1[...,1]/2))*np.cos(-p*np.tan(np.pi*tx_eqn1[...,1]/2)+params[5]*params[6]*0)
+    plt.title('t = {}'.format(tr))
+    plt.plot(tx_eqn1[...,1],ha,label='Analytical')
+    plt.plot(tx_eqn1[...,1][:100],h_solution1[0,:100],label='xtfc')
+    plt.xlabel('epsilon')
+    plt.ylabel('h(tau,epsilon)')
+    plt.legend()
+plt.tight_layout()
+plt.show()
+
+fig = plt.figure(figsize=(7,4))
+gs = GridSpec(2, 2)
+plt.subplot(gs[0, :])
+x_cross_sections = [0,1/2]
+for i, xr in enumerate(x_cross_sections):
+    plt.subplot(gs[1, i])
+    num_test_samples = 100
+    tx_eqn1 = np.zeros((num_test_samples,2))
+    tx_eqn1[...,0]= np.linspace(0, 1, num_test_samples)
+    tx_eqn1[...,1]=xr
+
+    h_solution = np.zeros((num_test_samples,1))
+    for j in range(len(h_solution)):
+        if xr ==0:
+        
+            ti,xj = tx_eqn1[...,0][j],xr
+            hij = h.subs(t,ti).subs(x,xj)
+            c1 = (t,x)
+            hij_f = lambdify(c1, hij, modules='numpy')
+            h_solution[j][0] = hij_f(ti,xj)
+            h_solution1 = h_solution
+            p1 = (params[5]*params[2]/2/params[3])**0.5
+            ha1 = params[4]*np.exp(-p1*np.tan(np.pi*xr/2))*np.cos(-p1*np.tan(np.pi*xr/2)+params[5]*params[6]*tx_eqn1[...,0])
+        else:
+            xr1 = xr-1/2
+            ti,xj = tx_eqn1[...,0][j],xr1
+            hij = h.subs(t,ti).subs(x,xj)
+            c1 = (t,x)
+            hij_f = lambdify(c1, hij, modules='numpy')
+            h_solution[j][0] = hij_f(ti,xj)
+            h_solution1 = -h_solution*np.exp(-p1*np.tan(np.pi*xr/2))
+            p1 = (params[5]*params[2]/2/params[3])**0.5
+            ha1 = -params[4]*np.exp(-p1*np.tan(np.pi*xr/2))*np.cos(-p1*np.tan(np.pi*xr1/2)+params[5]*params[6]*tx_eqn1[...,0])
+    
+    
+        
+    
+    
+    plt.title('x = {}'.format(xr))
+    plt.plot(tx_eqn1[...,0],ha1,label='Analytical')
+    plt.plot(tx_eqn1[...,0],h_solution1,label='xtfc')
+    plt.xlabel('tau')
+    plt.ylabel('h(tau,epsilon)')
+    plt.legend()
+plt.tight_layout()
+plt.show()

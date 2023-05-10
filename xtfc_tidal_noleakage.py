@@ -78,8 +78,8 @@ b_[99] = 0
 m= np.linalg.lstsq(HLM_, b_, rcond=None)[0]
 print(m)
 # solve for beta, least square
-beta = np.dot(np.linalg.inv(np.dot(HLM_.T,HLM_)),np.dot(HLM_.T,b_))
-beta = np.dot(np.linalg.inv(HLM_),b_)
+#beta = np.dot(np.linalg.inv(np.dot(HLM_.T,HLM_)),np.dot(HLM_.T,b_))
+#beta = np.dot(np.linalg.inv(HLM_),b_)
 cp = np.dot(HLM_,m)-b_
 beta_m = Matrix(m)
 # h as function of t and x
